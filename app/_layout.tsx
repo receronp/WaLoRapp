@@ -1,29 +1,45 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import * as Crypto from "expo-crypto";
+import { decode, encode } from "base-64";
 
-import { useColorScheme } from '@/components/useColorScheme';
+declare global {
+  var nativeModuleProxy: any;
+}
+
+// Polyfill for Gifted Chat
+if (!global.btoa) global.btoa = encode;
+if (!global.atob) global.atob = decode;
+
+// Mock the native module expected by Gifted Chat
+global.nativeModuleProxy = {
+  ...global.nativeModuleProxy,
+  ExponentUtil: {
+    getRandomBase64String: async (length: number) => {
+      const bytes = await Crypto.getRandomBytesAsync(length);
+      return Buffer.from(bytes).toString("base64");
+    },
+  },
+};
+
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useFonts } from "expo-font";
+import { Stack, useRouter } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect } from "react";
+import Colors from "@/constants/Colors";
+import { BLEProvider } from "@/util/contextBLE";
 
 export {
   // Catch any errors thrown by the Layout component.
   ErrorBoundary,
-} from 'expo-router';
-
-export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: '(tabs)',
-};
+} from "expo-router";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+const InitialLayout = () => {
+  const router = useRouter();
   const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
     ...FontAwesome.font,
   });
 
@@ -38,22 +54,52 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
-  if (!loaded) {
-    return null;
-  }
-
-  return <RootLayoutNav />;
-}
-
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+  useEffect(() => {
+    if (loaded) {
+      setTimeout(() => {
+        router.replace("/(tabs)/chats");
+      }, 2000);
+    }
+  }, [loaded]);
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
-    </ThemeProvider>
+    <Stack>
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="(modals)/new-chat"
+        options={{
+          presentation: "modal",
+          title: "New Chat",
+          headerTransparent: true,
+          headerBlurEffect: "regular",
+          headerStyle: {
+            backgroundColor: Colors.background,
+          },
+        }}
+      />
+      <Stack.Screen
+        name="(modals)/ble-connection"
+        options={{
+          presentation: "modal",
+          title: "New Connection",
+          headerTransparent: true,
+          headerBlurEffect: "regular",
+          headerStyle: {
+            backgroundColor: Colors.background,
+          },
+        }}
+      />
+    </Stack>
   );
-}
+};
+
+const RootLayoutNav = () => {
+  return (
+    <BLEProvider>
+      <InitialLayout />
+    </BLEProvider>
+  );
+};
+
+export default RootLayoutNav;
