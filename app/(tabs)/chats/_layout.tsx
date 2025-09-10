@@ -1,11 +1,34 @@
 import Colors from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
-import { Link, Stack } from "expo-router";
+import { Link, Stack, useLocalSearchParams } from "expo-router";
 import { TouchableOpacity, View, Text, Image, StyleSheet } from "react-native";
 import logoImage from "@/assets/images/logo.png";
+import { deviceName } from "expo-device";
 const logo_image = Image.resolveAssetSource(logoImage).uri;
 
 const Layout = () => {
+  const { id } = useLocalSearchParams();
+  console.log("Chat ID:", id);
+
+  // Extract endpoint name from chat ID
+  const getEndpointDisplayName = () => {
+    // Get the actual chat ID from route parameters
+    const chatId = id as string;
+    console.log("Extracted chat ID:", chatId);
+
+    if (chatId && chatId.includes("_")) {
+      // Chat ID format is "{deviceName}_{macAddress}" converted to lowercase and cleaned
+      // Try to extract the device name part before the underscore
+      const parts = chatId.split("_");
+      if (parts.length > 0) {
+        // Capitalize first letter and return the device name part
+        const deviceName = parts[0];
+        return deviceName.charAt(0).toUpperCase() + deviceName.slice(1);
+      }
+    }
+
+    return deviceName; // Default name
+  };
   return (
     <Stack>
       <Stack.Screen
@@ -68,14 +91,28 @@ const Layout = () => {
                 paddingBottom: 4,
               }}
             >
-              <Image
-                source={{
-                  uri: "https://pbs.twimg.com/profile_images/1564203599747600385/f6Lvcpcu_400x400.jpg",
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: Colors.primary,
+                  justifyContent: "center",
+                  alignItems: "center",
                 }}
-                style={{ width: 40, height: 40, borderRadius: 50 }}
-              />
+              >
+                <Text
+                  style={{
+                    color: "white",
+                    fontSize: 18,
+                    fontWeight: "bold",
+                  }}
+                >
+                  {getEndpointDisplayName().charAt(0).toUpperCase()}
+                </Text>
+              </View>
               <Text style={{ fontSize: 16, fontWeight: "500" }}>
-                Simon Grimm
+                {getEndpointDisplayName()}
               </Text>
               <View style={{ flex: 1 }} />
               <View style={{ flexDirection: "row", gap: 20, marginLeft: 10 }}>

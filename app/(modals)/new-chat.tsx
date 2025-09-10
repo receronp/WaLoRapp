@@ -8,12 +8,14 @@ import {
 } from "react-native";
 import Colors from "@/constants/Colors";
 import { useBLEContext } from "@/util/contextBLE";
+import { useChatContext } from "@/util/contextChat";
 import { useState, useEffect } from "react";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 const Page = () => {
   const { configureEndpoint, configStatus, connectedDevice } = useBLEContext();
+  const { addConfiguredChat } = useChatContext();
   const [deviceName, setDeviceName] = useState("");
   const [macAddress, setMacAddress] = useState("");
   const [isConfiguring, setIsConfiguring] = useState(false);
@@ -30,11 +32,14 @@ const Page = () => {
           [
             {
               text: "OK",
-              onPress: () => {
+              onPress: async () => {
+                // Add the configured chat to the chat list
+                await addConfiguredChat(deviceName.trim(), macAddress.trim());
+                
                 // Generate a chat ID based on the device name and mac
                 const chatId = `${deviceName}_${macAddress}`
                   .toLowerCase()
-                  .replace(/[^a-z0-9]/g, "");
+                  .replace(/[^a-z0-9_]/g, "");
                 router.replace(`/(tabs)/chats/${chatId}`);
               },
             },
