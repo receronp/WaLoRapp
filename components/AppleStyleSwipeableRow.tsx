@@ -7,7 +7,11 @@ import { RectButton } from 'react-native-gesture-handler';
 
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 
-export default class AppleStyleSwipeableRow extends Component<PropsWithChildren<unknown>> {
+interface Props {
+  onArchive?: () => void;
+}
+
+export default class AppleStyleSwipeableRow extends Component<PropsWithChildren<Props>> {
   private renderRightAction = (
     text: string,
     color: string,
@@ -20,8 +24,12 @@ export default class AppleStyleSwipeableRow extends Component<PropsWithChildren<
     });
     const pressHandler = () => {
       this.close();
-      // eslint-disable-next-line no-alert
-      window.alert(text);
+      if (text === 'Archive' && this.props.onArchive) {
+        this.props.onArchive();
+      } else {
+        // eslint-disable-next-line no-alert
+        window.alert(text);
+      }
     };
 
     return (

@@ -23,6 +23,7 @@ interface BluetoothLowEnergyApi {
   writeToDevice: (device: Device, message: string) => Promise<void>;
   configureEndpoint: (device: Device, name: string, macAddress: string) => Promise<boolean>;
   disconnectFromDevice: () => void;
+  clearConfigStatus: () => void;
   connectedDevice: Device | null;
   allDevices: Device[];
   loraMsg: string;
@@ -175,6 +176,10 @@ function useBLE(): BluetoothLowEnergyApi {
     }
   };
 
+  const clearConfigStatus = () => {
+    setConfigStatus("");
+  };
+
   const onLoRaMessageUpdate = (
     error: BleError | null,
     characteristic: Characteristic | null
@@ -241,6 +246,7 @@ function useBLE(): BluetoothLowEnergyApi {
     allDevices,
     connectedDevice,
     disconnectFromDevice,
+    clearConfigStatus,
     loraMsg,
     configStatus,
   };

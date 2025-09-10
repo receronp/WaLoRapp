@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { IMessage } from "react-native-gifted-chat";
 
 export interface ConfiguredChat {
   id: string;
@@ -18,11 +19,15 @@ interface ChatContextType {
   addConfiguredChat: (deviceName: string, macAddress: string) => Promise<void>;
   removeConfiguredChat: (chatId: string) => Promise<void>;
   updateChatLastMessage: (chatId: string, message: string) => Promise<void>;
+  getConfiguredChat: (deviceId: string) => ConfiguredChat | undefined;
+  getChatMessages: (chatId: string) => Promise<IMessage[]>;
+  saveChatMessages: (chatId: string, messages: IMessage[]) => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 const STORAGE_KEY = "configured_chats";
+const MESSAGES_STORAGE_KEY = "chat_messages_";
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -86,6 +91,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
     const updatedChats = configuredChats.filter((chat) => chat.id !== chatId);
     setConfiguredChats(updatedChats);
     await saveConfiguredChats(updatedChats);
+    
+    // Also remove the stored messages for this chat
+    try {
+      await AsyncStorage.removeItem(MESSAGES_STORAGE_KEY + chatId);
+    } catch (error) {
+      console.error("Failed to remove chat messages:", error);
+    }
   };
 
   const updateChatLastMessage = async (chatId: string, message: string) => {
@@ -104,6 +116,40 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
     await saveConfiguredChats(updatedChats);
   };
 
+  const getConfiguredChat = (deviceId: string) => {
+    return configuredChats.find((chat) => 
+      chat.deviceName.toLowerCase() === deviceId.toLowerCase() ||
+      chat.id.toLowerCase() === deviceId.toLowerCase()
+    );
+  };
+
+  const getChatMessages = async (chatId: string): Promise<IMessage[]> => {
+    try {
+      const stored = await AsyncStorage.getItem(MESSAGES_STORAGE_KEY + chatId);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+      return [];
+    } catch (error) {
+      console.error("Failed to load chat messages:", error);
+      return [];
+    }
+  };
+
+  const saveChatMessages = async (chatId: string, messages: IMessage[]) => {
+    try {
+      await AsyncStorage.setItem(MESSAGES_STORAGE_KEY + chatId, JSON.stringify(messages));
+      
+      // Update the latest message in the chat list
+      if (messages.length > 0) {
+        const latestMessage = messages[0]; // GiftedChat keeps the latest message at index 0
+        await updateChatLastMessage(chatId, latestMessage.text);
+      }
+    } catch (error) {
+      console.error("Failed to save chat messages:", error);
+    }
+  };
+
   return (
     <ChatContext.Provider
       value={{
@@ -111,6 +157,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({
         addConfiguredChat,
         removeConfiguredChat,
         updateChatLastMessage,
+        getConfiguredChat,
+        getChatMessages,
+        saveChatMessages,
       }}
     >
       {children}

@@ -14,18 +14,39 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 const Page = () => {
-  const { configureEndpoint, configStatus, connectedDevice } = useBLEContext();
-  const { addConfiguredChat } = useChatContext();
+  const { configureEndpoint, configStatus, connectedDevice, clearConfigStatus } = useBLEContext();
+  const { addConfiguredChat, getConfiguredChat } = useChatContext();
   const [deviceName, setDeviceName] = useState("");
   const [macAddress, setMacAddress] = useState("");
   const [isConfiguring, setIsConfiguring] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [existingConfig, setExistingConfig] = useState<any>(null);
 
-  // Monitor configuration status
+  // Check for existing configuration when modal opens
   useEffect(() => {
-    if (configStatus) {
+    // Clear any previous config status
+    clearConfigStatus();
+    
+    // Check if this device already has a configuration
+    if (connectedDevice?.name) {
+      const existing = getConfiguredChat(connectedDevice.name);
+      if (existing) {
+        setExistingConfig(existing);
+        setDeviceName(existing.deviceName);
+        setMacAddress(existing.macAddress);
+        setIsEditMode(true);
+      }
+    }
+  }, [connectedDevice?.name, clearConfigStatus, getConfiguredChat]);
+
+  // Monitor configuration status - only when actively configuring
+  useEffect(() => {
+    if (configStatus && isConfiguring) {
       setIsConfiguring(false);
 
       if (configStatus.startsWith("SUCCESS:")) {
+        console.log(configStatus);
+        
         Alert.alert(
           "Success",
           "Endpoint configured successfully! Opening chat...",
@@ -49,7 +70,7 @@ const Page = () => {
         Alert.alert("Configuration Error", configStatus.substring(6));
       }
     }
-  }, [configStatus, deviceName, macAddress]);
+  }, [configStatus, deviceName, macAddress, isConfiguring]);
 
   const handleConfigureEndpoint = async () => {
     if (!connectedDevice) {
@@ -92,7 +113,18 @@ const Page = () => {
       style={{ flex: 1, paddingTop: 50, backgroundColor: Colors.background }}
     >
       <View style={{ paddingHorizontal: 14, marginVertical: 16 }}>
-        <Text style={styles.title}>Configure Remote Endpoint</Text>
+        <Text style={styles.title}>
+          {isEditMode ? "Edit Remote Endpoint" : "Configure Remote Endpoint"}
+        </Text>
+
+        {isEditMode && (
+          <View style={styles.editModeIndicator}>
+            <Ionicons name="information-circle" size={16} color={Colors.primary} />
+            <Text style={styles.editModeText}>
+              This device is already configured. You can edit the settings below.
+            </Text>
+          </View>
+        )}
 
         {/* Device Name Input */}
         <View style={{ marginBottom: 16 }}>
@@ -163,11 +195,40 @@ const Page = () => {
                   color="white"
                   style={{ marginRight: 8 }}
                 />
-                <Text style={styles.buttonText}>Configure & Start Chat</Text>
+                <Text style={styles.buttonText}>
+                  {isEditMode ? "Update & Open Chat" : "Configure & Start Chat"}
+                </Text>
               </>
             )}
           </View>
         </TouchableOpacity>
+
+        {/* Open Existing Chat Button - only show in edit mode */}
+        {isEditMode && existingConfig && (
+          <TouchableOpacity
+            style={[styles.configureButton, { backgroundColor: Colors.gray, marginTop: 12 }]}
+            onPress={() => {
+              const chatId = existingConfig.id;
+              router.replace(`/(tabs)/chats/${chatId}`);
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons
+                name="chatbubble-outline"
+                size={20}
+                color="white"
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.buttonText}>Open Existing Chat</Text>
+            </View>
+          </TouchableOpacity>
+        )}
 
         {/* Connection Status */}
         <View
@@ -197,6 +258,20 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: "center",
     color: Colors.primary,
+  },
+  editModeIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.lightGray,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  editModeText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: Colors.primary,
+    flex: 1,
   },
   label: {
     marginBottom: 8,

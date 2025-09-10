@@ -1,33 +1,56 @@
 import Colors from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
-import { Link, Stack, useLocalSearchParams } from "expo-router";
+import { Link, Stack, useLocalSearchParams, usePathname } from "expo-router";
 import { TouchableOpacity, View, Text, Image, StyleSheet } from "react-native";
-import logoImage from "@/assets/images/logo.png";
 import { deviceName } from "expo-device";
-const logo_image = Image.resolveAssetSource(logoImage).uri;
+import { useChatContext } from "@/util/contextChat";
+import { useEffect, useState } from "react";
 
 const Layout = () => {
   const { id } = useLocalSearchParams();
-  console.log("Chat ID:", id);
-
-  // Extract endpoint name from chat ID
-  const getEndpointDisplayName = () => {
-    // Get the actual chat ID from route parameters
-    const chatId = id as string;
-    console.log("Extracted chat ID:", chatId);
-
-    if (chatId && chatId.includes("_")) {
-      // Chat ID format is "{deviceName}_{macAddress}" converted to lowercase and cleaned
-      // Try to extract the device name part before the underscore
-      const parts = chatId.split("_");
-      if (parts.length > 0) {
-        // Capitalize first letter and return the device name part
-        const deviceName = parts[0];
-        return deviceName.charAt(0).toUpperCase() + deviceName.slice(1);
-      }
+  const pathname = usePathname();
+  const { configuredChats } = useChatContext();
+  const [displayName, setDisplayName] = useState<string>("Loading...");
+  
+  // Extract chat ID from pathname as a more reliable method
+  const extractChatIdFromPath = () => {
+    // Pathname should be something like "/(tabs)/chats/pietro_da5a17b4"
+    const pathParts = pathname.split('/');
+    const chatsIndex = pathParts.findIndex(part => part === 'chats');
+    if (chatsIndex !== -1 && pathParts[chatsIndex + 1]) {
+      return pathParts[chatsIndex + 1];
     }
+    return null;
+  };
+  
+  const chatId = (id as string) || extractChatIdFromPath();
 
-    return deviceName; // Default name
+  // Immediate check when component mounts or data changes
+  useEffect(() => {
+    if (chatId) {
+      const currentChat = configuredChats.find(chat => chat.id === chatId);
+      
+      if (currentChat) {
+        setDisplayName(currentChat.from);
+      } else {
+        // Fallback: Extract from chat ID
+        if (chatId.includes("_")) {
+          const parts = chatId.split("_");
+          if (parts.length > 0) {
+            const fallbackName = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+            setDisplayName(fallbackName);
+          }
+        } else {
+          setDisplayName(deviceName || "Device");
+        }
+      }
+    } else {
+      setDisplayName("Device");
+    }
+  }, [chatId, configuredChats]);
+
+  const getEndpointDisplayName = () => {
+    return displayName;
   };
   return (
     <Stack>
@@ -58,7 +81,7 @@ const Layout = () => {
                 </TouchableOpacity>
               </Link>
               <View style={styles.container}>
-                <Image source={{ uri: logo_image }} style={styles.logo} />
+                <Image source={require("@/assets/images/logo.png")} style={styles.logo} />
               </View>
               <Link href="/(modals)/new-chat" asChild>
                 <TouchableOpacity>
@@ -108,7 +131,7 @@ const Layout = () => {
                     fontWeight: "bold",
                   }}
                 >
-                  {getEndpointDisplayName().charAt(0).toUpperCase()}
+                  {getEndpointDisplayName()?.charAt(0)?.toUpperCase() || "D"}
                 </Text>
               </View>
               <Text style={{ fontSize: 16, fontWeight: "500" }}>

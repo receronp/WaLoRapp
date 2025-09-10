@@ -5,10 +5,14 @@ import { defaultStyles } from "@/constants/Styles";
 import { useChatContext } from "@/util/contextChat";
 
 const Page = () => {
-  const { configuredChats } = useChatContext();
+  const { configuredChats, removeConfiguredChat } = useChatContext();
 
   // Combine configured chats with static chats, with configured chats first
   const allChats = [...configuredChats, ...chats];
+
+  const handleArchiveChat = async (chatId: string) => {
+    await removeConfiguredChat(chatId);
+  };
 
   return (
     <FlatList
@@ -16,7 +20,12 @@ const Page = () => {
       contentContainerStyle={{ backgroundColor: "#fff" }}
       style={{ flex: 1 }}
       data={allChats}
-      renderItem={({ item }) => <ChatRow {...item} />}
+      renderItem={({ item }) => (
+        <ChatRow 
+          {...item} 
+          onArchive={() => handleArchiveChat(item.id)} 
+        />
+      )}
       keyExtractor={(item) => item.id.toString()}
       ItemSeparatorComponent={() => (
         <View style={[defaultStyles.separator, { marginLeft: 90 }]} />

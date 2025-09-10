@@ -19,35 +19,60 @@ import {
 } from "react-native-gifted-chat";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBLEContext } from "@/util/contextBLE";
+import { useChatContext } from "@/util/contextChat";
+import { useLocalSearchParams } from "expo-router";
 
 const Page = () => {
   const [messages, setMessages] = useState<IMessage[]>([]);
   const [text, setText] = useState("");
   const insets = useSafeAreaInsets();
+  const { id } = useLocalSearchParams<{ id: string }>();
 
   const [replyMessage, setReplyMessage] = useState<IMessage | null>(null);
   const swipeableRowRef = useRef<Swipeable | null>(null);
+  const lastProcessedLoraMsg = useRef<string>("");
 
   const { connectedDevice, writeToDevice, loraMsg } = useBLEContext();
+  const { getChatMessages, saveChatMessages } = useChatContext();
 
   useEffect(() => {
-    setMessages([
-      {
-        _id: 0,
-        system: true,
-        text: "Messages sent using LoRa",
-        createdAt: new Date(),
-        user: {
-          _id: 0,
-          name: "Bot",
-        },
-      },
-    ]);
-  }, []);
+    const loadMessages = async () => {
+      if (id) {
+        const savedMessages = await getChatMessages(id);
+        if (savedMessages.length > 0) {
+          setMessages(savedMessages);
+        } else {
+          // Set initial system message if no messages exist
+          const initialMessages = [
+            {
+              _id: 0,
+              system: true,
+              text: "Messages sent using LoRa",
+              createdAt: new Date(),
+              user: {
+                _id: 0,
+                name: "Bot",
+              },
+            },
+          ];
+          setMessages(initialMessages);
+          // Save the initial message
+          saveChatMessages(id, initialMessages);
+        }
+      }
+    };
+
+    loadMessages();
+  }, [id]);
 
   // Add new message when loraMsg changes and is not empty
   useEffect(() => {
-    if (loraMsg && loraMsg.trim() !== "") {
+    if (
+      loraMsg &&
+      loraMsg.trim() !== "" &&
+      loraMsg !== lastProcessedLoraMsg.current
+    ) {
+      lastProcessedLoraMsg.current = loraMsg;
       const newMessage: IMessage = {
         _id: Math.random().toString(36).substring(7), // Generate unique ID
         text: loraMsg,
@@ -58,23 +83,37 @@ const Page = () => {
         },
       };
 
-      setMessages((previousMessages) =>
-        GiftedChat.append(previousMessages, [newMessage])
-      );
+      setMessages((previousMessages) => {
+        const updatedMessages = GiftedChat.append(previousMessages, [
+          newMessage,
+        ]);
+
+        // Save messages to storage
+        if (id) {
+          saveChatMessages(id, updatedMessages);
+        }
+        return updatedMessages;
+      });
     }
-  }, [loraMsg]);
+  }, [loraMsg, id]);
 
   const onSend = useCallback(
     (messages: IMessage[] = []) => {
-      setMessages((previousMessages: any[]) =>
-        GiftedChat.append(previousMessages, messages)
-      );
+      setMessages((previousMessages: any[]) => {
+        const updatedMessages = GiftedChat.append(previousMessages, messages);
+
+        // Save messages to storage
+        if (id) {
+          saveChatMessages(id, updatedMessages);
+        }
+        return updatedMessages;
+      });
       if (connectedDevice && messages.length > 0) {
         writeToDevice(connectedDevice, messages[0].text);
       }
       setText("");
     },
-    [connectedDevice, writeToDevice]
+    [connectedDevice, writeToDevice, id, saveChatMessages]
   );
 
   const renderInputToolbar = (props: any) => {
