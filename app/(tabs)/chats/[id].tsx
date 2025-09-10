@@ -18,7 +18,6 @@ import {
   IMessage,
 } from "react-native-gifted-chat";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import messageData from "@/assets/data/messages.json";
 import { useBLEContext } from "@/util/contextBLE";
 
 const Page = () => {
@@ -29,25 +28,14 @@ const Page = () => {
   const [replyMessage, setReplyMessage] = useState<IMessage | null>(null);
   const swipeableRowRef = useRef<Swipeable | null>(null);
 
-  const { connectedDevice, writeToDevice, configureEndpoint, loraMsg, configStatus } = useBLEContext();
+  const { connectedDevice, writeToDevice, loraMsg } = useBLEContext();
 
   useEffect(() => {
     setMessages([
-      ...messageData.map((message) => {
-        return {
-          _id: message.id,
-          text: message.msg,
-          createdAt: new Date(message.date),
-          user: {
-            _id: message.from,
-            name: message.from ? "You" : "Bob",
-          },
-        };
-      }),
       {
         _id: 0,
         system: true,
-        text: "All your base are belong to us",
+        text: "Messages sent using LoRa",
         createdAt: new Date(),
         user: {
           _id: 0,
@@ -69,22 +57,25 @@ const Page = () => {
           name: "LoRa Device",
         },
       };
-      
+
       setMessages((previousMessages) =>
         GiftedChat.append(previousMessages, [newMessage])
       );
     }
   }, [loraMsg]);
 
-  const onSend = useCallback((messages: IMessage[] = []) => {
-    setMessages((previousMessages: any[]) =>
-      GiftedChat.append(previousMessages, messages)
-    );
-    if (connectedDevice && messages.length > 0) {
-      writeToDevice(connectedDevice, messages[0].text);
-    }
-    setText("");
-  }, [connectedDevice, writeToDevice]);
+  const onSend = useCallback(
+    (messages: IMessage[] = []) => {
+      setMessages((previousMessages: any[]) =>
+        GiftedChat.append(previousMessages, messages)
+      );
+      if (connectedDevice && messages.length > 0) {
+        writeToDevice(connectedDevice, messages[0].text);
+      }
+      setText("");
+    },
+    [connectedDevice, writeToDevice]
+  );
 
   const renderInputToolbar = (props: any) => {
     return (
