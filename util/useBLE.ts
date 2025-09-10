@@ -14,16 +14,19 @@ import base64 from "react-native-base64";
 const CHUNK_SIZE = 20; // BLE characteristic max size
 const HEART_RATE_UUID = "0000180d-0000-1000-8000-00805f9b34fb";
 const HEART_RATE_CHARACTERISTIC = "00002a37-0000-1000-8000-00805f9b34fb";
+const CONFIG_CHARACTERISTIC = "00002a38-0000-1000-8000-00805f9b34fb"; // New config characteristic
 
 interface BluetoothLowEnergyApi {
   requestPermissions(): Promise<boolean>;
   scanForPeripherals(): void;
   connectToDevice: (deviceId: Device) => Promise<void>;
   writeToDevice: (device: Device, message: string) => Promise<void>;
+  configureEndpoint: (device: Device, name: string, macAddress: string) => Promise<boolean>;
   disconnectFromDevice: () => void;
   connectedDevice: Device | null;
   allDevices: Device[];
   loraMsg: string;
+  configStatus: string;
 }
 
 function useBLE(): BluetoothLowEnergyApi {
@@ -31,6 +34,7 @@ function useBLE(): BluetoothLowEnergyApi {
   const [allDevices, setAllDevices] = useState<Device[]>([]);
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
   const [loraMsg, setLoRaIncommingMsg] = useState<string>("");
+  const [configStatus, setConfigStatus] = useState<string>("");
 
   const requestAndroid31Permissions = async () => {
     const bluetoothScanPermission = await PermissionsAndroid.request(
@@ -138,11 +142,36 @@ function useBLE(): BluetoothLowEnergyApi {
     }
   };
 
+  const configureEndpoint = async (device: Device, name: string, macAddress: string): Promise<boolean> => {
+    try {
+      const configMessage = `name=${name},mac=${macAddress}`;
+      const fullMessage = configMessage + "\n"; // Add delimiter like writeToDevice
+
+      // Send in chunks like writeToDevice
+      for (let i = 0; i < fullMessage.length; i += CHUNK_SIZE) {
+        const chunk = fullMessage.slice(i, i + CHUNK_SIZE);
+        const base64Chunk = base64.encode(chunk);
+        await device.writeCharacteristicWithResponseForService(
+          HEART_RATE_UUID,
+          CONFIG_CHARACTERISTIC,
+          base64Chunk
+        );
+      }
+
+      console.log("Configuration sent to device in chunks");
+      return true;
+    } catch (e) {
+      console.log("FAILED TO CONFIGURE ENDPOINT", e);
+      return false;
+    }
+  };
+
   const disconnectFromDevice = () => {
     if (connectedDevice) {
       bleManager.cancelDeviceConnection(connectedDevice.id);
       setConnectedDevice(null);
       setLoRaIncommingMsg("");
+      setConfigStatus("");
     }
   };
 
@@ -158,16 +187,45 @@ function useBLE(): BluetoothLowEnergyApi {
       return -1;
     }
 
-    const rawData = base64.decode(characteristic.value);
-    setLoRaIncommingMsg(rawData);
+    // Only decode BLE layer - MicroPython sends UTF-8, BLE encodes as base64
+    const loraMessage = base64.decode(characteristic.value);
+    console.log("LoRa message received:", loraMessage);
+    setLoRaIncommingMsg(loraMessage);
+  };
+
+  const onConfigUpdate = (
+    error: BleError | null,
+    characteristic: Characteristic | null
+  ) => {
+    if (error) {
+      console.log("Config error:", error);
+      return;
+    } else if (!characteristic?.value) {
+      console.log("No config response received");
+      return;
+    }
+
+    console.log("Raw characteristic value:", characteristic.value);
+    // First decode (BLE layer)
+    const finalResponse = base64.decode(characteristic.value);
+    console.log("Config response:", finalResponse);
+    setConfigStatus(finalResponse);
   };
 
   const startStreamingData = async (device: Device) => {
     if (device) {
+      // Monitor message characteristic for LoRa messages
       device.monitorCharacteristicForService(
         HEART_RATE_UUID,
         HEART_RATE_CHARACTERISTIC,
         onLoRaMessageUpdate
+      );
+      
+      // Monitor config characteristic for configuration responses
+      device.monitorCharacteristicForService(
+        HEART_RATE_UUID,
+        CONFIG_CHARACTERISTIC,
+        onConfigUpdate
       );
     } else {
       console.log("No Device Connected");
@@ -179,10 +237,12 @@ function useBLE(): BluetoothLowEnergyApi {
     requestPermissions,
     connectToDevice,
     writeToDevice,
+    configureEndpoint,
     allDevices,
     connectedDevice,
     disconnectFromDevice,
     loraMsg,
+    configStatus,
   };
 }
 

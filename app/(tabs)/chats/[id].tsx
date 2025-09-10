@@ -29,7 +29,7 @@ const Page = () => {
   const [replyMessage, setReplyMessage] = useState<IMessage | null>(null);
   const swipeableRowRef = useRef<Swipeable | null>(null);
 
-  const { connectedDevice, writeToDevice, loraMsg } = useBLEContext();
+  const { connectedDevice, writeToDevice, configureEndpoint, loraMsg, configStatus } = useBLEContext();
 
   useEffect(() => {
     setMessages([
