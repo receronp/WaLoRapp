@@ -72,18 +72,21 @@ const Page = () => {
     }
   }, [configStatus, deviceName, macAddress, isConfiguring]);
 
-  const handleConfigureEndpoint = async () => {
+  const handleConfigureEndpoint = async (autoName?: string, autoMac?: string) => {
     if (!connectedDevice) {
       Alert.alert("Error", "Please connect to a BLE device first");
       return;
     }
 
-    if (!deviceName.trim()) {
+    const nameToUse = autoName || deviceName.trim().toLowerCase();
+    const macToUse = autoMac || macAddress.trim().toLowerCase();
+
+    if (!nameToUse) {
       Alert.alert("Error", "Please enter a device name");
       return;
     }
 
-    if (!macAddress.trim() || macAddress.length !== 8) {
+    if (!macToUse || macToUse.length !== 8) {
       Alert.alert("Error", "Please enter a valid 8-character MAC address");
       return;
     }
@@ -93,8 +96,8 @@ const Page = () => {
     try {
       const success = await configureEndpoint(
         connectedDevice,
-        deviceName.trim(),
-        macAddress.trim()
+        nameToUse,
+        macToUse
       );
 
       if (!success) {
@@ -135,7 +138,7 @@ const Page = () => {
               placeholder="e.g. SensorNode1"
               value={deviceName}
               onChangeText={setDeviceName}
-              autoCapitalize="none"
+              autoCapitalize="words"
               editable={!isConfiguring}
             />
           </View>
@@ -151,7 +154,7 @@ const Page = () => {
               value={macAddress}
               onChangeText={setMacAddress}
               maxLength={8}
-              autoCapitalize="none"
+              autoCapitalize="characters"
               keyboardType="default"
               editable={!isConfiguring}
             />
@@ -167,7 +170,7 @@ const Page = () => {
               opacity: isConfiguring ? 0.6 : 1,
             },
           ]}
-          onPress={handleConfigureEndpoint}
+          onPress={() => handleConfigureEndpoint()}
           disabled={isConfiguring}
         >
           <View

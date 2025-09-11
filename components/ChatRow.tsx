@@ -16,6 +16,30 @@ export interface ChatRowProps {
 }
 
 const ChatRow: FC<ChatRowProps> = ({ id, from, date, msg, read, unreadCount, onArchive }) => {
+  // Extract MAC address from ID if it follows the pattern "name_macaddress"
+  const getDisplayName = () => {
+    if (id && id.includes("_")) {
+      const parts = id.split("_");
+      if (parts.length >= 2) {
+        const name = parts[0];
+        const macAddress = parts[1];
+        // Capitalize first letter of name
+        const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+        return `${capitalizedName} @ ${macAddress}`;
+      }
+    }
+    // Fallback to original from prop formatting
+    return from
+      .split(" ")
+      .map(
+        (word) =>
+          word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+      )
+      .join(" ");
+  };
+
+  const displayName = getDisplayName();
+
   return (
     <AppleStyleSwipeableRow onArchive={onArchive}>
       <Link href={`/(tabs)/chats/${id}`} asChild>
@@ -35,7 +59,7 @@ const ChatRow: FC<ChatRowProps> = ({ id, from, date, msg, read, unreadCount, onA
                 height: 50,
                 borderRadius: 25,
                 backgroundColor: `hsl(${
-                  (from
+                  (displayName
                     .split("")
                     .reduce((acc, char) => acc + char.charCodeAt(0), 0) *
                     137.508) %
@@ -50,11 +74,13 @@ const ChatRow: FC<ChatRowProps> = ({ id, from, date, msg, read, unreadCount, onA
               fontSize: 20, 
               fontWeight: 'bold' 
               }}>
-              {from.charAt(0).toUpperCase()}
+              {displayName.charAt(0).toUpperCase()}
               </Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 18, fontWeight: 'bold' }}>{from}</Text>
+              <Text style={{ fontSize: 18, fontWeight: "bold" }}>
+                {displayName}
+              </Text>
               <Text style={{ fontSize: 16, color: Colors.gray }}>
               {msg.length > 40 ? `${msg.substring(0, 40)}...` : msg}
               </Text>
