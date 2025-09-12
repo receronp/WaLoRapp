@@ -308,7 +308,7 @@ const Page = () => {
           <Text style={{ fontSize: 14, color: Colors.gray }}>
             Status:{" "}
             {connectedDevice
-              ? `Connected to ${connectedDevice.name || "Device"}`
+              ? `Connected to ${connectedDevice.localName || "Device"}`
               : "Not connected to BLE device"}
           </Text>
         </View>

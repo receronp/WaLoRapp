@@ -50,6 +50,8 @@ const Page = () => {
     connectToDevice,
     scanForPeripherals,
     requestPermissions,
+    connectedDevice,
+    disconnectFromDevice,
   } = useBLEContext();
 
   const scanForDevices = async () => {
@@ -79,18 +81,42 @@ const Page = () => {
 
   return (
     <SafeAreaView style={modalStyle.modalTitle}>
-      <Text style={modalStyle.modalTitleText}>Tap on a device to connect</Text>
-      <FlatList
-        contentContainerStyle={modalStyle.modalFlatlistContiner}
-        data={allDevices}
-        renderItem={renderDeviceModalListItem}
-        keyExtractor={(item) => item.id}
-        ListEmptyComponent={
-          <View style={{ alignItems: "center", marginTop: 40 }}>
-            <Text>No devices found.</Text>
+      <Text style={modalStyle.modalTitleText}>
+        {connectedDevice ? "Connected Device" : "Tap on a device to connect"}
+      </Text>
+
+      {connectedDevice ? (
+        <View style={modalStyle.connectedDeviceContainer}>
+          <View style={modalStyle.connectedDeviceInfo}>
+            <Text style={modalStyle.connectedDeviceText}>
+              {connectedDevice.localName ||
+                connectedDevice.name ||
+                "Unknown Device"}
+            </Text>
           </View>
-        }
-      />
+          <TouchableOpacity
+            style={modalStyle.disconnectButton}
+            onPress={() => {
+              disconnectFromDevice();
+              closeModal();
+            }}
+          >
+            <Text style={modalStyle.disconnectButtonText}>Disconnect</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          contentContainerStyle={modalStyle.modalFlatlistContiner}
+          data={allDevices}
+          renderItem={renderDeviceModalListItem}
+          keyExtractor={(item) => item.id}
+          ListEmptyComponent={
+            <View style={{ alignItems: "center", marginTop: 40 }}>
+              <Text>No devices found.</Text>
+            </View>
+          }
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -124,17 +150,54 @@ const modalStyle = StyleSheet.create({
     textAlign: "center",
   },
   ctaButton: {
-    backgroundColor: "#FF6060",
+    backgroundColor: "#007AFF",
     justifyContent: "center",
     alignItems: "center",
     height: 50,
     marginHorizontal: 20,
     marginBottom: 5,
     borderRadius: 8,
+    borderWidth: 2,
+    borderColor: "#0056D3",
   },
   ctaButtonText: {
     fontSize: 18,
     fontWeight: "bold",
+    color: "white",
+  },
+  connectedDeviceContainer: {
+    backgroundColor: "#6C757D",
+    marginHorizontal: 20,
+    marginTop: 20,
+    borderRadius: 12,
+    padding: 20,
+    alignItems: "center",
+  },
+  connectedDeviceInfo: {
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  connectedDeviceText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "white",
+    marginBottom: 5,
+  },
+  connectedDeviceId: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.8)",
+  },
+  disconnectButton: {
+    backgroundColor: "#FF6060",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: "#CC4848",
+  },
+  disconnectButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
     color: "white",
   },
 });

@@ -1,15 +1,17 @@
 import Colors from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
-import { Link, Stack, useLocalSearchParams, usePathname } from "expo-router";
-import { TouchableOpacity, View, Text, Image, StyleSheet } from "react-native";
+import { Link, Stack, useLocalSearchParams, usePathname, router } from "expo-router";
+import { TouchableOpacity, View, Text, Image, StyleSheet, Alert } from "react-native";
 import { deviceName } from "expo-device";
 import { useChatContext } from "@/util/contextChat";
+import { useBLEContext } from "@/util/contextBLE";
 import { useEffect, useState } from "react";
 
 const Layout = () => {
   const { id } = useLocalSearchParams();
   const pathname = usePathname();
   const { configuredChats } = useChatContext();
+  const { connectedDevice } = useBLEContext();
   const [displayName, setDisplayName] = useState<string>("Loading...");
 
   // Extract chat ID from pathname as a more reliable method
@@ -53,6 +55,29 @@ const Layout = () => {
   const getEndpointDisplayName = () => {
     return displayName;
   };
+
+  const handleNewChatPress = () => {
+    if (!connectedDevice) {
+      Alert.alert(
+        "BLE Connection Required",
+        "Please connect to a BLE device first before creating a new chat.",
+        [
+          {
+            text: "Connect to BLE",
+            onPress: () => {
+              router.push("/(modals)/ble-connection");
+            },
+          },
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+        ]
+      );
+    } else {
+      router.push("/(modals)/new-chat");
+    }
+  };
   return (
     <Stack>
       <Stack.Screen
@@ -62,6 +87,7 @@ const Layout = () => {
           headerLargeTitle: true,
           headerTransparent: true,
           headerBlurEffect: "regular",
+          headerBackVisible: false,
           headerTitle: () => (
             <View
               style={{
@@ -72,30 +98,35 @@ const Layout = () => {
                 height: 40,
               }}
             >
-              <Link href="/(modals)/ble-connection" asChild>
-                <TouchableOpacity>
-                  <Ionicons
-                    name="bluetooth-outline"
-                    color={Colors.primary}
-                    size={30}
-                  />
-                </TouchableOpacity>
-              </Link>
+              <View style={styles.leftSection}>
+                <Link href="/(modals)/ble-connection" asChild>
+                  <TouchableOpacity>
+                    <Ionicons
+                      name="bluetooth-outline"
+                      color={Colors.primary}
+                      size={30}
+                    />
+                  </TouchableOpacity>
+                </Link>
+                {connectedDevice && (
+                  <Text style={styles.connectionStatus}>
+                    {connectedDevice.localName || connectedDevice.name || "Connected"}
+                  </Text>
+                )}
+              </View>
               <View style={styles.container}>
                 <Image
                   source={require("@/assets/images/logo.png")}
                   style={styles.logo}
                 />
               </View>
-              <Link href="/(modals)/new-chat" asChild>
-                <TouchableOpacity>
-                  <Ionicons
-                    name="add-circle"
-                    color={Colors.primary}
-                    size={30}
-                  />
-                </TouchableOpacity>
-              </Link>
+              <TouchableOpacity onPress={handleNewChatPress}>
+                <Ionicons
+                  name="add-circle"
+                  color={Colors.primary}
+                  size={30}
+                />
+              </TouchableOpacity>
             </View>
           ),
           headerStyle: {
@@ -144,6 +175,24 @@ const Layout = () => {
               </Text>
             </View>
           ),
+          headerRight: () => (
+            <View style={styles.rightSection}>
+              <Link href="/(modals)/ble-connection" asChild>
+                <TouchableOpacity>
+                  <Ionicons
+                    name="bluetooth-outline"
+                    color={Colors.primary}
+                    size={24}
+                  />
+                </TouchableOpacity>
+              </Link>
+              {connectedDevice && (
+                <Text style={styles.connectionStatusSmall}>
+                  {connectedDevice.localName || connectedDevice.name || "Connected"}
+                </Text>
+              )}
+            </View>
+          ),
           headerStyle: {
             backgroundColor: Colors.background,
           },
@@ -163,6 +212,28 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 40,
     resizeMode: "contain",
+  },
+  leftSection: {
+    alignItems: "center",
+    minWidth: 60,
+  },
+  rightSection: {
+    alignItems: "center",
+    minWidth: 60,
+  },
+  connectionStatus: {
+    fontSize: 10,
+    color: Colors.primary,
+    marginTop: 2,
+    textAlign: "center",
+    fontWeight: "500",
+  },
+  connectionStatusSmall: {
+    fontSize: 8,
+    color: Colors.primary,
+    marginTop: 1,
+    textAlign: "center",
+    fontWeight: "500",
   },
 });
 
