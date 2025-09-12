@@ -44,7 +44,7 @@ const Page = () => {
         {/* Related Projects */}
         <TouchableOpacity 
           style={styles.section}
-          onPress={() => router.push('/related-projects' as any)}
+          onPress={() => router.push('/info/related-projects')}
         >
           <View style={styles.menuItem}>
             <Ionicons name="code-slash" size={20} color={Colors.primary} />
@@ -56,7 +56,7 @@ const Page = () => {
         {/* Software & Firmware */}
         <TouchableOpacity 
           style={styles.section}
-          onPress={() => router.push('/software-firmware' as any)}
+          onPress={() => router.push('/info/software-firmware')}
         >
           <View style={styles.menuItem}>
             <Ionicons name="layers" size={20} color={Colors.primary} />

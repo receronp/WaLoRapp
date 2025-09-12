@@ -101,9 +101,7 @@ const RelatedProjectsPage = () => {
             <Text style={styles.featureItem}>
               • Edge AI and machine learning capabilities
             </Text>
-            <Text style={styles.featureItem}>
-              • Multi-sensor data fusion
-            </Text>
+            <Text style={styles.featureItem}>• Multi-sensor data fusion</Text>
             <Text style={styles.featureItem}>
               • Real-time video and image processing
             </Text>
