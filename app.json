@@ -20,8 +20,6 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "This app needs access to your location to share it with others via LoRa.",
-        "NSCameraUsageDescription": "This app needs access to your camera to take and share photos.",
-        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select and share images.",
         "NSDocumentsFolderUsageDescription": "This app needs access to your documents to share files via LoRa.",
         "LSSupportsOpeningDocumentsInPlace": true,
         "UIFileSharingEnabled": true
@@ -38,12 +36,8 @@
         "android.permission.BLUETOOTH_CONNECT",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.READ_MEDIA_IMAGES",
-        "android.permission.READ_MEDIA_VIDEO",
-        "android.permission.READ_MEDIA_AUDIO"
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ],
       "edgeToEdgeEnabled": true,
       "package": "com.receronp.WaLoRapp"
@@ -62,13 +56,6 @@
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location to share it with others via LoRa."
-        }
-      ],
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "The app accesses your photos to let you share them in chats.",
-          "cameraPermission": "The app accesses your camera to let you take and share photos."
         }
       ],
       [
