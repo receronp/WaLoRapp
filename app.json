@@ -48,11 +48,6 @@
       "edgeToEdgeEnabled": true,
       "package": "com.receronp.WaLoRapp"
     },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
-    },
     "plugins": [
       "expo-router",
       [
@@ -81,9 +76,7 @@
         {
           "iCloudContainerEnvironment": "Production"
         }
-      ],
-      "expo-sqlite",
-      "expo-secure-store"
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
