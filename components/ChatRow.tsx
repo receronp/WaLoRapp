@@ -1,10 +1,11 @@
 import AppleStyleSwipeableRow from '@/components/AppleStyleSwipeableRow';
 import Colors from '@/constants/Colors';
 import { format } from 'date-fns';
-import { Link } from 'expo-router';
+import { router } from 'expo-router';
 import { FC } from 'react';
-import { View, Text, Image, TouchableHighlight } from 'react-native';
+import { View, Text, Image, TouchableHighlight, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useBLEContext } from '@/util/contextBLE';
 
 export interface ChatRowProps {
   id: string;
@@ -17,6 +18,8 @@ export interface ChatRowProps {
 }
 
 const ChatRow: FC<ChatRowProps> = ({ id, from, date, msg, read, unreadCount, onArchive }) => {
+  const { connectedDevice } = useBLEContext();
+
   // Extract MAC address from ID if it follows the pattern "name_macaddress"
   const getDisplayName = () => {
     if (id && id.includes("_")) {
@@ -96,10 +99,49 @@ const ChatRow: FC<ChatRowProps> = ({ id, from, date, msg, read, unreadCount, onA
   const displayName = getDisplayName();
   const messageDisplay = getMessageDisplay();
 
+  // Validate if this chat can be opened
+  const handleChatPress = () => {
+    // Check if BLE device is connected
+    if (!connectedDevice) {
+      Alert.alert(
+        "No BLE Connection",
+        "Please connect to a BLE device before opening any chat.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    // Extract MAC address from chat ID
+    if (id && id.includes("_")) {
+      const parts = id.split("_");
+      if (parts.length >= 2) {
+        const macAddress = parts[1].toLowerCase();
+        
+        // Check if the MAC address matches the connected device's local name
+        if (connectedDevice.localName && 
+            connectedDevice.localName.trim() !== "" &&
+            macAddress === connectedDevice.localName.toLowerCase()) {
+          Alert.alert(
+            "Cannot Open Chat",
+            "This chat cannot be opened because the MAC address matches the device you are currently connected to. You cannot have a remote chat with your own device.",
+            [{ text: "OK" }]
+          );
+          return;
+        }
+      }
+    }
+    
+    // If validation passes, open the chat
+    router.push(`/(tabs)/chats/${id}`);
+  };
+
   return (
     <AppleStyleSwipeableRow onArchive={onArchive}>
-      <Link href={`/(tabs)/chats/${id}`} asChild>
-        <TouchableHighlight activeOpacity={0.8} underlayColor={Colors.lightGray}>
+        <TouchableHighlight 
+          activeOpacity={0.8} 
+          underlayColor={Colors.lightGray}
+          onPress={handleChatPress}
+        >
             <View
             style={{
               flexDirection: 'row',
@@ -155,7 +197,6 @@ const ChatRow: FC<ChatRowProps> = ({ id, from, date, msg, read, unreadCount, onA
             </Text>
             </View>
         </TouchableHighlight>
-      </Link>
     </AppleStyleSwipeableRow>
   );
 };

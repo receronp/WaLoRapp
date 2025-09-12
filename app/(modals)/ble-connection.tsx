@@ -36,7 +36,9 @@ const DeviceModalListItem: React.FC<DeviceModalListItemProps> = ({
       onPress={connectAndCloseModal}
       style={modalStyle.ctaButton}
     >
-      <Text style={modalStyle.ctaButtonText}>{device.localName}</Text>
+      <Text style={modalStyle.ctaButtonText}>
+        {device.localName || device.name || "Unknown Device"}
+      </Text>
     </TouchableOpacity>
   );
 };

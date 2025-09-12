@@ -119,6 +119,20 @@ const Page = () => {
       return;
     }
 
+    // Validate MAC address is not the same as device local name
+    if (
+      connectedDevice.localName &&
+      connectedDevice.localName.trim() !== "" &&
+      macToUse === connectedDevice.localName.toLowerCase()
+    ) {
+      Alert.alert(
+        "Cannot Create Chat",
+        "This chat cannot be created because the MAC address matches the device you are currently connected to. You cannot have a remote chat with your own device.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
     setIsConfiguring(true);
 
     console.log(

@@ -172,9 +172,21 @@ function useBLE(): BluetoothLowEnergyApi {
       try {
         // Request maximum MTU (517 bytes) - will negotiate down based on iOS/device limits
         const deviceWithMTU = await deviceConnection.requestMTU(517);
+        
+        // Preserve the original device's localName by setting it on the connected device
+        if (device.localName && !deviceWithMTU.localName) {
+          (deviceWithMTU as any).localName = device.localName;
+        }
+        
         setConnectedDevice(deviceWithMTU);
       } catch (mtuError) {
         console.warn("MTU negotiation failed, using default MTU:", mtuError);
+        
+        // Preserve the original device's localName by setting it on the connected device
+        if (device.localName && !deviceConnection.localName) {
+          (deviceConnection as any).localName = device.localName;
+        }
+        
         setConnectedDevice(deviceConnection);
       }
 
