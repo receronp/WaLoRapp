@@ -48,7 +48,7 @@ const FILE_PICKER_RESET_DELAY = 500; // milliseconds
 const MESSAGE_PREFIXES = {
   FILE_DATA: "FILE_DATA:",
   FILE: "FILE:",
-  LOCATION: "📍 Location: ",
+  LOCATION: "Location: ",
 } as const;
 
 // User IDs
@@ -73,14 +73,6 @@ const MESSAGE_PATTERNS = {
   LOCATION: /^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/,
   LOCATION_URL: /q=(-?\d+\.?\d*),(-?\d+\.?\d*)/,
 } as const;
-
-// File types
-interface FilePickerResult {
-  name: string;
-  size?: number;
-  uri: string;
-  mimeType?: string;
-}
 
 interface ChatState {
   messages: IMessage[];
@@ -135,13 +127,11 @@ const Page: React.FC = () => {
     writeFileToDevice,
     loraMsg,
     configureEndpoint,
+    chunkedMessages,
+    isReceivingChunkedMessage,
+    chunkedMessageProgress,
   } = useBLEContext();
   const { getChatMessages, saveChatMessages } = useChatContext();
-
-  // Memoized helper functions
-  const generateMessageId = useCallback((): string => {
-    return Math.random().toString(36).substring(7);
-  }, []);
 
   const createInitialMessage = useCallback(
     (): IMessage => ({
@@ -203,15 +193,15 @@ const Page: React.FC = () => {
     const locationMatch = loraMsg.match(MESSAGE_PATTERNS.LOCATION);
     if (locationMatch) {
       const [, lat, lng] = locationMatch;
-      return `📍 Received Location: https://maps.google.com/?q=${lat},${lng}`;
+      return `Received Location: https://maps.google.com/?q=${lat},${lng}`;
     }
 
     // Check for different message types
-    if (loraMsg === "📷 Image shared") {
-      return "📷 An image was shared via LoRa";
+    if (loraMsg === "Image shared") {
+      return "An image was shared via LoRa";
     }
 
-    if (loraMsg.startsWith("📁 File received:")) {
+    if (loraMsg.startsWith("File received:")) {
       return loraMsg; // Keep file notifications as is
     }
 
@@ -232,7 +222,7 @@ const Page: React.FC = () => {
     const messageText = processLoRaMessage(loraMsg);
 
     const newMessage: IMessage = {
-      _id: generateMessageId(),
+      _id: Math.random().toString(36).substring(7),
       text: messageText,
       createdAt: new Date(),
       user: {
@@ -251,14 +241,7 @@ const Page: React.FC = () => {
 
       return updatedMessages;
     });
-  }, [
-    loraMsg,
-    id,
-    processLoRaMessage,
-    generateMessageId,
-    updateMessages,
-    saveChatMessages,
-  ]);
+  }, [loraMsg, id, processLoRaMessage, updateMessages, saveChatMessages]);
 
   // Auto-configure endpoint when entering chat
   useEffect(() => {
@@ -343,14 +326,15 @@ const Page: React.FC = () => {
       const message = messages[0];
 
       try {
-        // Handle file messages
+        // Handle file messages - now using chunked protocol via message characteristic
         if (message.text.startsWith(MESSAGE_PREFIXES.FILE_DATA)) {
           const { filename, base64Data } = parseFileMessage(message.text);
-          console.log(
-            `📁 Sending file: ${filename} (${base64Data.length} chars base64)`
-          );
+
+          console.log(`Sending file via chunked protocol: ${filename}`);
+
+          // Send via writeFileToDevice which uses "file" message type
           await writeFileToDevice(connectedDevice, filename, base64Data);
-          console.log("✅ File sent successfully via FileCharacteristic");
+          console.log("File sent successfully via chunked protocol");
         }
         // Handle location messages
         else if (
@@ -373,14 +357,13 @@ const Page: React.FC = () => {
           error instanceof Error &&
           !error.message.includes("Device disconnected")
         ) {
-          console.error("❌ Failed to send message:", error);
+          console.error("Failed to send message:", error);
         }
       }
     },
     [
       connectedDevice,
       writeToDevice,
-      writeFileToDevice,
       id,
       saveChatMessages,
       updateMessages,
@@ -392,6 +375,39 @@ const Page: React.FC = () => {
   const resetFilePickerState = useCallback(() => {
     updateChatState({ isFilePickerActive: false });
   }, [updateChatState]);
+
+  // Helper function to validate file properties
+  const validateFile = useCallback(
+    (file: any): { isValid: boolean; error?: string } => {
+      if (!file.uri) {
+        return {
+          isValid: false,
+          error: "Invalid file selected. Please try again.",
+        };
+      }
+      if (!file.name) {
+        return {
+          isValid: false,
+          error: "File has no name. Please select a different file.",
+        };
+      }
+      if (file.size && file.size > MAX_FILE_SIZE) {
+        return {
+          isValid: false,
+          error: "Please select a file smaller than 5MB for LoRa transmission.",
+        };
+      }
+      if (file.size === 0) {
+        return {
+          isValid: false,
+          error:
+            "The selected file appears to be empty. Please select a different file.",
+        };
+      }
+      return { isValid: true };
+    },
+    []
+  );
 
   const sendLocation = useCallback(async (): Promise<void> => {
     try {
@@ -427,7 +443,7 @@ const Page: React.FC = () => {
     } catch (error) {
       Alert.alert("Error", "Failed to get your current location.");
     }
-  }, [updateChatState, onSend, generateMessageId]);
+  }, [updateChatState, onSend]);
 
   const sendFile = useCallback(async (): Promise<void> => {
     // Prevent multiple concurrent file picker operations
@@ -442,56 +458,18 @@ const Page: React.FC = () => {
       await new Promise((resolve) => setTimeout(resolve, MODAL_CLOSE_DELAY));
 
       // Pick a file with additional configuration to prevent conflicts
-      console.log(`🔄 Opening document picker...`);
       const result = await DocumentPicker.getDocumentAsync({
         type: "*/*",
         copyToCacheDirectory: true,
         multiple: false,
       });
-
-      console.log(`📄 Document picker result:`, {
-        canceled: result.canceled,
-        assetsLength: result.assets?.length,
-      });
-
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const file = result.assets[0];
 
-        console.log(`📄 Selected file details:`, {
-          name: file.name,
-          size: file.size,
-          mimeType: file.mimeType,
-          uri: file.uri,
-        });
-
         // Validate file properties
-        if (!file.uri) {
-          Alert.alert("Error", "Invalid file selected. Please try again.");
-          return;
-        }
-
-        if (!file.name) {
-          Alert.alert(
-            "Error",
-            "File has no name. Please select a different file."
-          );
-          return;
-        }
-
-        // Validate file size (max 5MB for LoRa transmission)
-        if (file.size && file.size > MAX_FILE_SIZE) {
-          Alert.alert(
-            "File Too Large",
-            "Please select a file smaller than 5MB for LoRa transmission."
-          );
-          return;
-        }
-
-        if (file.size === 0) {
-          Alert.alert(
-            "Empty File",
-            "The selected file appears to be empty. Please select a different file."
-          );
+        const fileValidation = validateFile(file);
+        if (!fileValidation.isValid) {
+          Alert.alert("Error", fileValidation.error!);
           return;
         }
 
@@ -541,17 +519,8 @@ const Page: React.FC = () => {
         return;
       }
 
-      // Debug file information
-      console.log(`📁 Selected file:`, {
-        name: file.name,
-        uri: file.uri,
-        size: file.size,
-        mimeType: file.mimeType,
-      });
-
       // Check if file exists and get info
       const fileInfo = await FileSystem.getInfoAsync(file.uri);
-      console.log(`📋 File info:`, fileInfo);
 
       if (!fileInfo.exists) {
         throw new Error(`File does not exist at URI: ${file.uri}`);
@@ -562,7 +531,6 @@ const Page: React.FC = () => {
       }
 
       // Convert file to base64
-      console.log(`🔄 Reading file as base64...`);
       let base64Data: string;
 
       try {
@@ -570,10 +538,9 @@ const Page: React.FC = () => {
           encoding: FileSystem.EncodingType.Base64,
         });
       } catch (readError) {
-        console.error(`❌ Failed to read file directly:`, readError);
+        console.error("Failed to read file directly:", readError);
 
         // Try alternative approach: copy to cache first
-        console.log(`🔄 Trying alternative approach: copying to cache...`);
         const cacheUri = `${FileSystem.cacheDirectory}temp_${file.name}`;
 
         try {
@@ -589,20 +556,14 @@ const Page: React.FC = () => {
           // Clean up temp file
           await FileSystem.deleteAsync(cacheUri, { idempotent: true });
 
-          console.log(`✅ Successfully read via cache copy`);
+          console.log(`Successfully read via cache copy`);
         } catch (cacheError) {
-          console.error(`❌ Cache copy approach failed:`, cacheError);
+          console.error(`Cache copy approach failed:`, cacheError);
           throw new Error(
             `Unable to read file: ${file.name}. Try selecting a different file.`
           );
         }
       }
-
-      console.log(
-        `📁 File read: ${file.name} (${
-          base64Data.length
-        } chars base64, expected ~${Math.ceil((fileInfo.size * 4) / 3)} chars)`
-      );
 
       // Validate base64 data
       if (!base64Data || base64Data.length === 0) {
@@ -619,12 +580,6 @@ const Page: React.FC = () => {
           _id: USER_IDS.CURRENT,
         },
       };
-
-      console.log(
-        `📝 Created file message: ${MESSAGE_PREFIXES.FILE_DATA}${
-          file.name
-        }:[${base64Data.substring(0, 50)}...]`
-      );
 
       // Send through onSend method (this will handle the actual BLE transmission)
       onSend([fileMessage]);
@@ -685,7 +640,7 @@ const Page: React.FC = () => {
 
       // Check if this is a location message
       const isLocationMessage =
-        currentMessage.text.includes("📍") &&
+        currentMessage.text.includes("Location:") &&
         currentMessage.text.includes("https://maps.google.com/?q=");
 
       if (isLocationMessage) {
@@ -766,6 +721,13 @@ const Page: React.FC = () => {
       }}
     >
       <KeyboardAvoidingView style={{ flex: 1 }}>
+        {/* Chunked Message Progress Indicator */}
+        {isReceivingChunkedMessage && (
+          <View style={styles.progressContainer}>
+            <Text style={styles.progressText}>{chunkedMessageProgress}</Text>
+          </View>
+        )}
+
         <GiftedChat
           messages={chatState.messages}
           onSend={(messages: IMessage[]) => onSend(messages)}
@@ -883,6 +845,22 @@ const Page: React.FC = () => {
 const { width: screenWidth } = Dimensions.get("window");
 
 const styles = StyleSheet.create({
+  // Progress indicator styles
+  progressContainer: {
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginHorizontal: 20,
+    marginTop: 10,
+    borderRadius: 20,
+    alignItems: "center",
+  },
+  progressText: {
+    color: "#fff",
+    fontSize: 12,
+    fontFamily: "monospace",
+  },
+
   // Input styles
   composer: {
     backgroundColor: "#fff",
