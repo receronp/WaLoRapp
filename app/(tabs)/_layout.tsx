@@ -35,10 +35,10 @@ const TabsLayout = () => {
         />
 
         <Tabs.Screen
-          name="settings"
+          name="info"
           options={{
-            title: 'Settings',
-            tabBarIcon: ({ size, color }) => <Ionicons name="cog" size={size} color={color} />,
+            title: 'Info',
+            tabBarIcon: ({ size, color }) => <Ionicons name="information-circle" size={size} color={color} />,
             headerShown: false,
           }}
         />

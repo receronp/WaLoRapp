@@ -6,7 +6,7 @@ const Layout = () => {
       <Stack.Screen
         name="index"
         options={{
-          title: 'Settings',
+          title: 'Info',
           headerLargeTitle: true,
           headerShadowVisible: false,
           headerStyle: { backgroundColor: Colors.background },
