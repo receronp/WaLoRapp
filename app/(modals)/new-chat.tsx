@@ -14,7 +14,12 @@ import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 const Page = () => {
-  const { configureEndpoint, configStatus, connectedDevice, clearConfigStatus } = useBLEContext();
+  const {
+    configureEndpoint,
+    configStatus,
+    connectedDevice,
+    clearConfigStatus,
+  } = useBLEContext();
   const { addConfiguredChat, getConfiguredChat } = useChatContext();
   const [deviceName, setDeviceName] = useState("");
   const [macAddress, setMacAddress] = useState("");
@@ -26,7 +31,7 @@ const Page = () => {
   useEffect(() => {
     // Clear any previous config status
     clearConfigStatus();
-    
+
     // Check if this device already has a configuration
     if (connectedDevice?.name) {
       const existing = getConfiguredChat(connectedDevice.name);
@@ -46,7 +51,7 @@ const Page = () => {
 
       if (configStatus.startsWith("SUCCESS:")) {
         console.log(configStatus);
-        
+
         Alert.alert(
           "Success",
           "Endpoint configured successfully! Opening chat...",
@@ -56,7 +61,7 @@ const Page = () => {
               onPress: async () => {
                 // Add the configured chat to the chat list
                 await addConfiguredChat(deviceName.trim(), macAddress.trim());
-                
+
                 // Generate a chat ID based on the device name and mac
                 const chatId = `${deviceName}_${macAddress}`
                   .toLowerCase()
@@ -72,7 +77,10 @@ const Page = () => {
     }
   }, [configStatus, deviceName, macAddress, isConfiguring]);
 
-  const handleConfigureEndpoint = async (autoName?: string, autoMac?: string) => {
+  const handleConfigureEndpoint = async (
+    autoName?: string,
+    autoMac?: string
+  ) => {
     if (!connectedDevice) {
       Alert.alert("Error", "Please connect to a BLE device first");
       return;
@@ -81,23 +89,47 @@ const Page = () => {
     const nameToUse = autoName || deviceName.trim().toLowerCase();
     const macToUse = autoMac || macAddress.trim().toLowerCase();
 
+    // Validate device name
     if (!nameToUse) {
       Alert.alert("Error", "Please enter a device name");
       return;
     }
 
-    if (!macToUse || macToUse.length !== 8) {
-      Alert.alert("Error", "Please enter a valid 8-character MAC address");
+    // Validate device name format (alphanumeric and underscore only)
+    if (!/^[a-zA-Z0-9_]+$/.test(nameToUse)) {
+      Alert.alert(
+        "Error",
+        "Device name can only contain letters, numbers, and underscores"
+      );
+      return;
+    }
+
+    // Validate MAC address
+    if (!macToUse) {
+      Alert.alert("Error", "Please enter a MAC address");
+      return;
+    }
+
+    // Validate MAC address format (8 hexadecimal characters)
+    if (!/^[a-fA-F0-9]{8}$/.test(macToUse)) {
+      Alert.alert(
+        "Error",
+        "MAC address must be exactly 8 hexadecimal characters (0-9, a-f)"
+      );
       return;
     }
 
     setIsConfiguring(true);
 
+    console.log(
+      `Configuring endpoint - Name: "${nameToUse}", MAC: "${macToUse.toLowerCase()}"`
+    );
+
     try {
       const success = await configureEndpoint(
         connectedDevice,
         nameToUse,
-        macToUse
+        macToUse.toLowerCase()
       );
 
       if (!success) {
@@ -107,6 +139,7 @@ const Page = () => {
       // Success will be handled in the useEffect when configStatus updates
     } catch (error) {
       setIsConfiguring(false);
+      console.error("Configuration error:", error);
       Alert.alert("Error", "Failed to configure endpoint");
     }
   };
@@ -122,9 +155,14 @@ const Page = () => {
 
         {isEditMode && (
           <View style={styles.editModeIndicator}>
-            <Ionicons name="information-circle" size={16} color={Colors.primary} />
+            <Ionicons
+              name="information-circle"
+              size={16}
+              color={Colors.primary}
+            />
             <Text style={styles.editModeText}>
-              This device is already configured. You can edit the settings below.
+              This device is already configured. You can edit the settings
+              below.
             </Text>
           </View>
         )}
@@ -132,13 +170,18 @@ const Page = () => {
         {/* Device Name Input */}
         <View style={{ marginBottom: 16 }}>
           <Text style={styles.label}>Device Name:</Text>
+          <Text style={styles.helperText}>
+            Letters, numbers, and underscores only
+          </Text>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <TextInput
               style={styles.input}
               placeholder="e.g. SensorNode1"
               value={deviceName}
-              onChangeText={setDeviceName}
-              autoCapitalize="words"
+              onChangeText={(text) =>
+                setDeviceName(text.replace(/[^a-zA-Z0-9_]/g, ""))
+              }
+              autoCapitalize="none"
               editable={!isConfiguring}
             />
           </View>
@@ -146,15 +189,18 @@ const Page = () => {
 
         {/* MAC Address Input */}
         <View style={{ marginBottom: 24 }}>
-          <Text style={styles.label}>MAC Address (8 characters):</Text>
+          <Text style={styles.label}>MAC Address (8 hex characters):</Text>
+          <Text style={styles.helperText}>Only 0-9 and a-f allowed</Text>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <TextInput
               style={styles.input}
               placeholder="e.g. da5a26a5"
               value={macAddress}
-              onChangeText={setMacAddress}
+              onChangeText={(text) =>
+                setMacAddress(text.replace(/[^a-fA-F0-9]/g, "").toLowerCase())
+              }
               maxLength={8}
-              autoCapitalize="characters"
+              autoCapitalize="none"
               keyboardType="default"
               editable={!isConfiguring}
             />
@@ -209,7 +255,10 @@ const Page = () => {
         {/* Open Existing Chat Button - only show in edit mode */}
         {isEditMode && existingConfig && (
           <TouchableOpacity
-            style={[styles.configureButton, { backgroundColor: Colors.gray, marginTop: 12 }]}
+            style={[
+              styles.configureButton,
+              { backgroundColor: Colors.gray, marginTop: 12 },
+            ]}
             onPress={() => {
               const chatId = existingConfig.id;
               router.replace(`/(tabs)/chats/${chatId}`);
@@ -281,6 +330,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 16,
     color: "#333",
+  },
+  helperText: {
+    fontSize: 12,
+    color: Colors.gray,
+    marginBottom: 8,
   },
   input: {
     flex: 1,

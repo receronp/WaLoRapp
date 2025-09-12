@@ -11,25 +11,25 @@ const Layout = () => {
   const pathname = usePathname();
   const { configuredChats } = useChatContext();
   const [displayName, setDisplayName] = useState<string>("Loading...");
-  
+
   // Extract chat ID from pathname as a more reliable method
   const extractChatIdFromPath = () => {
     // Pathname should be something like "/(tabs)/chats/pietro_da5a17b4"
-    const pathParts = pathname.split('/');
-    const chatsIndex = pathParts.findIndex(part => part === 'chats');
+    const pathParts = pathname.split("/");
+    const chatsIndex = pathParts.findIndex((part) => part === "chats");
     if (chatsIndex !== -1 && pathParts[chatsIndex + 1]) {
       return pathParts[chatsIndex + 1];
     }
     return null;
   };
-  
+
   const chatId = (id as string) || extractChatIdFromPath();
 
   // Immediate check when component mounts or data changes
   useEffect(() => {
     if (chatId) {
-      const currentChat = configuredChats.find(chat => chat.id === chatId);
-      
+      const currentChat = configuredChats.find((chat) => chat.id === chatId);
+
       if (currentChat) {
         setDisplayName(currentChat.from);
       } else {
@@ -37,7 +37,8 @@ const Layout = () => {
         if (chatId.includes("_")) {
           const parts = chatId.split("_");
           if (parts.length > 0) {
-            const fallbackName = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+            const fallbackName =
+              parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
             setDisplayName(fallbackName);
           }
         } else {
@@ -81,7 +82,10 @@ const Layout = () => {
                 </TouchableOpacity>
               </Link>
               <View style={styles.container}>
-                <Image source={require("@/assets/images/logo.png")} style={styles.logo} />
+                <Image
+                  source={require("@/assets/images/logo.png")}
+                  style={styles.logo}
+                />
               </View>
               <Link href="/(modals)/new-chat" asChild>
                 <TouchableOpacity>
@@ -107,53 +111,37 @@ const Layout = () => {
           headerTitle: () => (
             <View
               style={{
-                flexDirection: "row",
-                width: 220,
-                alignItems: "center",
-                gap: 10,
-                paddingBottom: 4,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 10,
+              paddingBottom: 4,
+              flex: 1,
+              justifyContent: "center",
               }}
             >
               <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: Colors.primary,
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+              >
+              <Text
                 style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: Colors.primary,
-                  justifyContent: "center",
-                  alignItems: "center",
+                color: "white",
+                fontSize: 18,
+                fontWeight: "bold",
                 }}
               >
-                <Text
-                  style={{
-                    color: "white",
-                    fontSize: 18,
-                    fontWeight: "bold",
-                  }}
-                >
-                  {getEndpointDisplayName()?.charAt(0)?.toUpperCase() || "D"}
-                </Text>
+                {getEndpointDisplayName()?.charAt(0)?.toUpperCase() || "D"}
+              </Text>
               </View>
               <Text style={{ fontSize: 16, fontWeight: "500" }}>
-                {getEndpointDisplayName()}
+              {getEndpointDisplayName()}
               </Text>
-              <View style={{ flex: 1 }} />
-              <View style={{ flexDirection: "row", gap: 20, marginLeft: 10 }}>
-                <TouchableOpacity>
-                  <Ionicons
-                    name="videocam-outline"
-                    color={Colors.primary}
-                    size={30}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity>
-                  <Ionicons
-                    name="call-outline"
-                    color={Colors.primary}
-                    size={30}
-                  />
-                </TouchableOpacity>
-              </View>
             </View>
           ),
           headerStyle: {

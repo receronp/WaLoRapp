@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { Link } from 'expo-router';
 import { FC } from 'react';
 import { View, Text, Image, TouchableHighlight } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 export interface ChatRowProps {
   id: string;
@@ -38,7 +39,62 @@ const ChatRow: FC<ChatRowProps> = ({ id, from, date, msg, read, unreadCount, onA
       .join(" ");
   };
 
+  // Format coordinates to 2 significant digits
+  const formatCoordinates = (lat: string, lng: string): string => {
+    const latNum = parseFloat(lat);
+    const lngNum = parseFloat(lng);
+    return `${latNum.toFixed(3)}, ${lngNum.toFixed(3)}`;
+  };
+
+  // Parse and format message content based on type
+  const getMessageDisplay = () => {
+    // Check for location messages
+    if (msg.includes("Location:") && msg.includes("https://maps.google.com/?q=")) {
+      const coordsMatch = msg.match(/q=(-?\d+\.?\d*),(-?\d+\.?\d*)/);
+      if (coordsMatch) {
+        const [, lat, lng] = coordsMatch;
+        const formattedCoords = formatCoordinates(lat, lng);
+        return {
+          type: 'location',
+          icon: 'location' as const,
+          text: formattedCoords,
+          color: Colors.primary
+        };
+      }
+    }
+
+    // Check for file messages (both FILE_DATA and FILE formats)
+    if (msg.startsWith("FILE_DATA:") || msg.startsWith("FILE:")) {
+      const parts = msg.split(":");
+      const filename = parts.length >= 2 ? parts[1] : "Unknown file";
+      return {
+        type: 'file',
+        icon: 'attach' as const,
+        text: filename,
+        color: Colors.primary
+      };
+    }
+
+    // Check for file received notifications
+    if (msg.startsWith("File received:")) {
+      const filename = msg.replace("File received: ", "");
+      return {
+        type: 'file',
+        icon: 'attach' as const,
+        text: filename,
+        color: Colors.primary
+      };
+    }
+
+    // Regular text message
+    return {
+      type: 'text',
+      text: msg.length > 40 ? `${msg.substring(0, 40)}...` : msg
+    };
+  };
+
   const displayName = getDisplayName();
+  const messageDisplay = getMessageDisplay();
 
   return (
     <AppleStyleSwipeableRow onArchive={onArchive}>
@@ -81,9 +137,18 @@ const ChatRow: FC<ChatRowProps> = ({ id, from, date, msg, read, unreadCount, onA
               <Text style={{ fontSize: 18, fontWeight: "bold" }}>
                 {displayName}
               </Text>
-              <Text style={{ fontSize: 16, color: Colors.gray }}>
-              {msg.length > 40 ? `${msg.substring(0, 40)}...` : msg}
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                {messageDisplay.type !== 'text' && (
+                  <Ionicons 
+                    name={messageDisplay.icon} 
+                    size={16} 
+                    color={messageDisplay.color} 
+                  />
+                )}
+                <Text style={{ fontSize: 16, color: Colors.gray, flex: 1 }}>
+                  {messageDisplay.text}
+                </Text>
+              </View>
             </View>
             <Text style={{ color: Colors.gray, paddingRight: 20, alignSelf: 'flex-start' }}>
               {format(date, 'MM.dd.yy')}

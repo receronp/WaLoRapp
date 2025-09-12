@@ -322,12 +322,13 @@ function useBLE(): BluetoothLowEnergyApi {
   ): Promise<boolean> => {
     try {
       const configMessage = `name=${name},mac=${macAddress}`;
-      await writeCharacteristicInChunks(
-        device,
+      console.log(`Sending config message: "${configMessage}"`);
+      
+      // Send configuration directly without chunking protocol
+      await device.writeCharacteristicWithResponseForService(
         BLE_UUID,
         CONFIG_CHARACTERISTIC,
-        configMessage,
-        "config" // message type
+        base64.encode(configMessage)
       );
       return true;
     } catch (error) {

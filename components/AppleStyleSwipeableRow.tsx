@@ -53,11 +53,10 @@ export default class AppleStyleSwipeableRow extends Component<PropsWithChildren<
   ) => (
     <View
       style={{
-        width: 192,
+        width: 96,
         flexDirection: I18nManager.isRTL ? 'row-reverse' : 'row',
       }}>
-      {this.renderRightAction('More', '#C8C7CD', 192, progress)}
-      {this.renderRightAction('Archive', Colors.muted, 128, progress)}
+      {this.renderRightAction('Archive', Colors.muted, 96, progress)}
     </View>
   );
 
