@@ -20,7 +20,6 @@ A modern React Native chat application that enables communication through Blueto
 
 - Share files up to 5MB via LoRa transmission
 - Base64 encoding for reliable transfer
-- Support for multiple file formats (PDF, images, documents, audio, video)
 - File validation and size checking
 - Auto-save received files to device storage
 
@@ -124,6 +123,7 @@ The app requires the following permissions:
 ### Version 1.0.0 - Latest Improvements
 
 **Navigation & UX Enhancements:**
+
 - Migrated "Related Projects" and "Software & Firmware" from modals to dedicated info subpages
 - Implemented consistent navigation patterns with standard back arrow behavior
 - Enhanced BLE connection modal with connect/disconnect states and improved styling
@@ -131,6 +131,7 @@ The app requires the following permissions:
 - Improved new chat creation flow with BLE connection validation
 
 **UI/UX Improvements:**
+
 - Added borders and enhanced styling for BLE connection buttons
 - Implemented connection status indicators in chat headers
 - Enhanced navigation layout with proper back arrow placement
@@ -138,6 +139,7 @@ The app requires the following permissions:
 - Added alert notifications for BLE connection requirements
 
 **Technical Improvements:**
+
 - Cleaned up unused dependencies for better performance
 - Optimized package.json and removed redundant modules
 - Enhanced navigation stack management
@@ -163,28 +165,28 @@ The app requires the following permissions:
 
 ```
 WaLoRapp/
-├── app/                    # Expo Router pages
-│   ├── (tabs)/            # Tab-based navigation
-│   │   ├── chats/         # Chat screens with improved navigation
-│   │   │   ├── index.tsx  # Chat list with BLE status
-│   │   │   ├── [id].tsx   # Individual chat screen
-│   │   │   └── _layout.tsx# Chat navigation layout
-│   │   └── info/          # Information section
-│   │       ├── index.tsx  # Info main page
-│   │       ├── related-projects.tsx # SMARTLAGOON projects
-│   │       └── software-firmware.tsx # Technical details
-│   ├── (modals)/          # Modal screens
-│   │   ├── ble-connection.tsx # Enhanced BLE connection modal
-│   │   └── new-chat.tsx   # New chat creation
-│   └── _layout.tsx        # Root layout
-├── components/            # Reusable UI components
-├── util/                  # Utilities and contexts
-│   ├── contextBLE.tsx     # Enhanced BLE connectivity context
-│   ├── contextChat.tsx    # Chat data management
-│   └── useBLE.ts         # BLE hooks and utilities
-├── constants/            # App constants and themes
-├── assets/              # Images and static assets
-└── ...                 # Config files
+├── app/                               # Expo Router pages
+│   ├── (tabs)/                        # Tab-based navigation
+│   │   ├── chats/                     # Chat screens with improved navigation
+│   │   │   ├── index.tsx              # Chat list with BLE status
+│   │   │   ├── [id].tsx               # Individual chat screen
+│   │   │   └── _layout.tsx            # Chat navigation layout
+│   │   └── info/                      # Information section
+│   │       ├── index.tsx              # Info main page
+│   │       ├── related-projects.tsx   # SMARTLAGOON projects
+│   │       └── software-firmware.tsx  # Technical details
+│   ├── (modals)/                      # Modal screens
+│   │   ├── ble-connection.tsx         # Enhanced BLE connection modal
+│   │   └── new-chat.tsx               # New chat creation
+│   └── _layout.tsx                    # Root layout
+├── components/                        # Reusable UI components
+├── util/                              # Utilities and contexts
+│   ├── contextBLE.tsx                 # Enhanced BLE connectivity context
+│   ├── contextChat.tsx                # Chat data management
+│   └── useBLE.ts                      # BLE hooks and utilities
+├── constants/                         # App constants and themes
+├── assets/                            # Images and static assets
+└── ...                                # Config files
 ```
 
 ### Key Components
@@ -234,9 +236,9 @@ WaLoRapp/
 The app automatically configures BLE connections based on device MAC addresses. Chat IDs follow the format: `{deviceName}_{macAddress}`
 
 **Recent Improvements:**
+
 - Enhanced BLE connection modal with visual feedback
 - Connection status persistently displayed across chat screens
-- Automatic connection alerts when creating new chats
 - Improved disconnect functionality with user confirmation
 
 ### LoRa Integration
@@ -246,7 +248,6 @@ LoRa message formatting is handled automatically with support for:
 - Text messages
 - File transfers (chunked for large files)
 - Location coordinates
-- System notifications
 
 ### Environment Variables
 
@@ -354,25 +355,6 @@ We welcome contributions! Please follow these steps:
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Links
-
-- **Repository**: [GitHub](https://github.com/receronp/WaLoRapp)
-- **Issues**: [Bug Reports & Feature Requests](https://github.com/receronp/WaLoRapp/issues)
-- **Expo**: [Project Page](https://expo.dev/@receronp/WaLoRapp)
-
-## Support
-
-- Email: [your-email@example.com](mailto:your-email@example.com)
-- Issues: [GitHub Issues](https://github.com/receronp/WaLoRapp/issues)
-- Discussions: [GitHub Discussions](https://github.com/receronp/WaLoRapp/discussions)
-
-## Acknowledgments
-
-- React Native community for excellent tooling and libraries
-- Expo team for the amazing development platform
-- Contributors and beta testers
-- Open source community for inspiration and support
 
 ---
 
